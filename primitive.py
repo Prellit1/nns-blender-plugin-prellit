@@ -96,28 +96,14 @@ class TriStripper():
                 candidate = tris[tri.next_candidates[i]]
                 if processed_tmp[tri.next_candidates[i]]:
                     continue
-                if not tri.is_suitable_tstrip_candidate_edge(candidate,
-                                                             vtxa,
-                                                             vtxb):
+                edge = tri.find_strip_edge(candidate, vtxa, vtxb)
+                if edge is None:
                     continue
-                pos_a = tri.positions[vtxa]
-                vtxa = 0
-                while vtxa < 3:
-                    if candidate.positions[vtxa] == pos_a:
-                        break
-                    vtxa += 1
-                pos_b = tri.positions[vtxb]
-                vtxb = 0
-                while vtxb < 3:
-                    if candidate.positions[vtxb] == pos_b:
-                        break
-                    vtxb += 1
-                if vtxa != 3 and vtxb != 3:
-                    vtxb, vtxa = self.get_previous_tri_edge(vtxb, vtxa)
-                    processed_tmp[tri.next_candidates[i]] = True
-                    tri_count += 1
-                    tri = candidate
-                    break
+                vtxb, vtxa = self.get_previous_tri_edge(edge[1], edge[0])
+                processed_tmp[tri.next_candidates[i]] = True
+                tri_count += 1
+                tri = candidate
+                break
             if i == 3:
                 break
         return tri_count
@@ -143,27 +129,13 @@ class TriStripper():
                 candidate = tris[tri.next_candidates[i]]
                 if candidate.processed:
                     continue
-                if not tri.is_suitable_tstrip_candidate_edge(candidate,
-                                                             vtxa,
-                                                             vtxb):
+                edge = tri.find_strip_edge(candidate, vtxa, vtxb)
+                if edge is None:
                     continue
-                pos_a = tri.positions[vtxa]
-                vtxa = 0
-                while vtxa < 3:
-                    if candidate.positions[vtxa] == pos_a:
-                        break
-                    vtxa += 1
-                pos_b = tri.positions[vtxb]
-                vtxb = 0
-                while vtxb < 3:
-                    if candidate.positions[vtxb] == pos_b:
-                        break
-                    vtxb += 1
-                if vtxa != 3 and vtxb != 3:
-                    vtxb, vtxa = self.get_previous_tri_edge(vtxb, vtxa)
-                    result.add_vtx(candidate, vtxb)
-                    candidate.processed = True
-                    tri = candidate
+                vtxb, vtxa = self.get_previous_tri_edge(edge[1], edge[0])
+                result.add_vtx(candidate, vtxb)
+                candidate.processed = True
+                tri = candidate
             if i == 3:
                 break
         return result
@@ -296,28 +268,14 @@ class QuadStripper():
                 candidate = quads[quad.next_candidates[i]]
                 if processed_tmp[quad.next_candidates[i]]:
                     continue
-                if not quad.is_suitable_qstrip_candidate_edge(candidate,
-                                                              vtxa,
-                                                              vtxb):
+                edge = quad.find_strip_edge(candidate, vtxa, vtxb)
+                if edge is None:
                     continue
-                pos_a = quad.positions[vtxa]
-                vtxa = 0
-                while vtxa < 4:
-                    if candidate.positions[vtxa] == pos_a:
-                        break
-                    vtxa += 1
-                pos_b = quad.positions[vtxb]
-                vtxb = 0
-                while vtxb < 4:
-                    if candidate.positions[vtxb] == pos_b:
-                        break
-                    vtxb += 1
-                if vtxa != 4 and vtxb != 4:
-                    vtxa, vtxb = self.get_opposite_quad_edge(vtxa, vtxb)
-                    processed_tmp[quad.next_candidates[i]] = True
-                    quad_count += 1
-                    quad = candidate
-                    break
+                vtxa, vtxb = self.get_opposite_quad_edge(edge[0], edge[1])
+                processed_tmp[quad.next_candidates[i]] = True
+                quad_count += 1
+                quad = candidate
+                break
             if i == 4 or quad_count > 1706:
                 break
         return quad_count
@@ -345,30 +303,16 @@ class QuadStripper():
                 candidate = quads[quad.next_candidates[i]]
                 if candidate.processed:
                     continue
-                if not quad.is_suitable_qstrip_candidate_edge(candidate,
-                                                              vtxa,
-                                                              vtxb):
+                edge = quad.find_strip_edge(candidate, vtxa, vtxb)
+                if edge is None:
                     continue
-                pos_a = quad.positions[vtxa]
-                vtxa = 0
-                while vtxa < 4:
-                    if candidate.positions[vtxa] == pos_a:
-                        break
-                    vtxa += 1
-                pos_b = quad.positions[vtxb]
-                vtxb = 0
-                while vtxb < 4:
-                    if candidate.positions[vtxb] == pos_b:
-                        break
-                    vtxb += 1
-                if vtxa != 4 and vtxb != 4:
-                    vtxa, vtxb = self.get_opposite_quad_edge(vtxa, vtxb)
-                    result.add_vtx(candidate, vtxa)
-                    result.add_vtx(candidate, vtxb)
-                    candidate.processed = True
-                    quad_count += 1
-                    quad = candidate
-                    break
+                vtxa, vtxb = self.get_opposite_quad_edge(edge[0], edge[1])
+                result.add_vtx(candidate, vtxa)
+                result.add_vtx(candidate, vtxb)
+                candidate.processed = True
+                quad_count += 1
+                quad = candidate
+                break
             if i == 4 or quad_count >= 1706:
                 break
         return result
@@ -602,17 +546,6 @@ class Primitive():
                 equal_count += 1
         return False
 
-    def is_suitable_tstrip_candidate_edge(self, candidate, a, b):
-        equal_count = 0
-        for i in range(3):
-            if (self.positions[a] == candidate.positions[i]
-                    and self.is_extra_data_equal(a, candidate, i)):
-                equal_count += 1
-            if (self.positions[b] == candidate.positions[i]
-                    and self.is_extra_data_equal(b, candidate, i)):
-                equal_count += 1
-        return equal_count == 2
-
     def is_suitable_qstrip_candidate(self, candidate):
         equal_count = 0
         first_i = 0
@@ -632,13 +565,15 @@ class Primitive():
                 equal_count += 1
         return False
 
-    def is_suitable_qstrip_candidate_edge(self, candidate, a, b):
-        equal_count = 0
-        for i in range(4):
-            if (self.positions[a] == candidate.positions[i]
-                    and self.is_extra_data_equal(a, candidate, i)):
-                equal_count += 1
-            if (self.positions[b] == candidate.positions[i]
-                    and self.is_extra_data_equal(b, candidate, i)):
-                equal_count += 1
-        return equal_count == 2
+    def find_strip_edge(self, candidate, a, b):
+        count = len(candidate.positions)
+        step = (a - b) % len(self.positions)
+        for corner_a in range(count):
+            if (self.positions[a] != candidate.positions[corner_a]
+                    or not self.is_extra_data_equal(a, candidate, corner_a)):
+                continue
+            corner_b = (corner_a + step) % count
+            if (self.positions[b] == candidate.positions[corner_b]
+                    and self.is_extra_data_equal(b, candidate, corner_b)):
+                return corner_a, corner_b
+        return None

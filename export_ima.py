@@ -60,10 +60,13 @@ class NitroIMAData:
         return head
 
 
-def _get_all_fcurves(action):
+def _get_all_fcurves(action, id_data=None):
     if bpy.app.version >= (5, 0, 0):
+        anim_data = id_data.animation_data if id_data is not None else None
+        slot = getattr(anim_data, "action_slot", None) if anim_data is not None else None
+        slots = [slot] if slot is not None else list(action.slots)
         curves = []
-        for slot in action.slots:
+        for slot in slots:
             channelbag = anim_utils.action_get_channelbag_for_slot(
                 action, slot)
             if channelbag is not None:
@@ -123,7 +126,7 @@ class NitroIMA:
             if action is None:
                 continue
 
-            all_fcurves = _get_all_fcurves(action)
+            all_fcurves = _get_all_fcurves(action, bld_material)
 
             # Only worth an entry if something we actually care about on this material is keyframed at all.
             if not any(_find_fcurve(all_fcurves, path, idx) is not None

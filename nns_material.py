@@ -897,21 +897,45 @@ def generate_fog_group():
 
     # reset group
 
-    if "surface color" not in fog_group.inputs or "mat use fog" not in fog_group.inputs:
-        for input in fog_group.inputs:
-            fog_group.inputs.remove(input)
-        fog_group.inputs.new("NodeSocketColor", "surface color")
-        fog_group.inputs.new("NodeSocketFloat", "mat use fog")
+    if group_socket_names(fog_group, 'INPUT') != ["surface color", "mat use fog"]:
+        clear_group_sockets(fog_group, 'INPUT')
+        add_group_socket(fog_group, 'INPUT', "NodeSocketColor", "surface color")
+        add_group_socket(fog_group, 'INPUT', "NodeSocketFloat", "mat use fog")
 
-    if "Color" not in fog_group.outputs:
-        for output in fog_group.outputs:
-            fog_group.outputs.remove(output)
-        fog_group.outputs.new("NodeSocketColor", "Color")
+    if group_socket_names(fog_group, 'OUTPUT') != ["Color"]:
+        clear_group_sockets(fog_group, 'OUTPUT')
+        add_group_socket(fog_group, 'OUTPUT', "NodeSocketColor", "Color")
 
-    for node in nodes:
-        nodes.remove(node)
+    nodes.clear()
 
     generate_fog_group_nodes(fog_group, input_node, output_node)
+
+
+def group_socket_names(group, in_out):
+    if hasattr(group, "interface"):
+        return [item.name for item in group.interface.items_tree
+                if item.item_type == 'SOCKET' and item.in_out == in_out]
+    sockets = group.inputs if in_out == 'INPUT' else group.outputs
+    return [socket.name for socket in sockets]
+
+
+def clear_group_sockets(group, in_out):
+    if hasattr(group, "interface"):
+        for item in [item for item in group.interface.items_tree
+                     if item.item_type == 'SOCKET' and item.in_out == in_out]:
+            group.interface.remove(item)
+        return
+    sockets = group.inputs if in_out == 'INPUT' else group.outputs
+    for socket in list(sockets):
+        sockets.remove(socket)
+
+
+def add_group_socket(group, in_out, socket_type, name):
+    if hasattr(group, "interface"):
+        group.interface.new_socket(name=name, in_out=in_out, socket_type=socket_type)
+        return
+    sockets = group.inputs if in_out == 'INPUT' else group.outputs
+    sockets.new(socket_type, name)
 
 
 def generate_fog_group_nodes(fog_group, input_node, output_node):

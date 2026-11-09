@@ -10,6 +10,20 @@ if bpy.app.version >= (5, 0, 0):
 settings = None
 
 
+def get_action_fcurves(id_data, action):
+    if bpy.app.version < (5, 0, 0):
+        return list(action.fcurves)
+    anim_data = id_data.animation_data
+    slot = getattr(anim_data, "action_slot", None) if anim_data is not None else None
+    slots = [slot] if slot is not None else list(action.slots)
+    curves = []
+    for slot in slots:
+        channelbag = anim_utils.action_get_channelbag_for_slot(action, slot)
+        if channelbag is not None:
+            curves.extend(channelbag.fcurves)
+    return curves
+
+
 class NitroTXPInfo:
     def __init__(self):
         self.frame_size = 0
@@ -138,12 +152,7 @@ class NitroTXP:
 
                             material_frmPattern.append(int(frame))
 
-        if bpy.app.version >= (5,0,0):
-            for slot in action.slots:
-                channelbag = anim_utils.action_get_channelbag_for_slot(action, slot)
-                acquire_from_fcurves(channelbag.fcurves)
-        else:
-            acquire_from_fcurves(action.fcurves)
+        acquire_from_fcurves(get_action_fcurves(material, action))
 
         if not material_frmPattern:
             self.set_static_data(material, model)

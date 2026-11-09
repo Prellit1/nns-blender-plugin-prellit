@@ -10,6 +10,7 @@ from bpy_extras.io_utils import ExportHelper
 from .nns_material import material_register, material_unregister
 from .nns_object import object_register, object_unregister
 from .nns_bounds import bounds_register, bounds_unregister
+from .import_nsbmd import import_register, import_unregister
 from .util import safe_register_class
 from . import version
 
@@ -19,7 +20,7 @@ bl_info = {
     "author": "Jelle, Ermelber, Perlite, Golden Glitch",
     "version": (1, 0, 0),
     "blender": (2, 80, 0),
-    "location": "File > Export",
+    "location": "File > Import-Export",
     "description": (
         "Export models, textures, and animations to Nitro (Nintendo DS) "
         "intermediate formats"
@@ -440,6 +441,7 @@ def register():
     material_register()
     object_register()
     bounds_register()
+    import_register()
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
 
 
@@ -453,6 +455,7 @@ def unregister():
     material_unregister()
     object_unregister()
     bounds_unregister()
+    import_unregister()
     bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
 
 
